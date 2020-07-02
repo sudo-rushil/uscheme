@@ -15,6 +15,6 @@ main = do
 
 -- Reads and parses input expression
 readExpr :: String -> String
-readExpr input = case parse (spaces >> symbol) "lisp" input of
+readExpr input = case parse parseExpr "lisp" input of
     Left err  -> "No match: " ++ show err
     Right val -> "Found value"

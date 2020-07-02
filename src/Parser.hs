@@ -6,11 +6,50 @@ import           Text.ParserCombinators.Parsec hiding (spaces)
 
 -- Data Types
 
+data LispVal = Atom String
+    | List [LispVal]
+    | DottedList [LispVal] LispVal
+    | Number Integer
+    | String String
+    | Bool Bool
+
 
 -- Parsers
 
+parseExpr :: Parser LispVal
+parseExpr = parseAtom
+        <|> parseString
+        <|> parseNumber
+
+
+parseAtom :: Parser LispVal
+parseAtom = do
+        first <- letter <|> symbol
+        rest <- many (letter <|> digit <|> symbol)
+        let atom = first:rest
+        return $ case atom of
+                "#t" -> Bool True
+                "#f" -> Bool False
+                _    -> Atom atom
+
+
+parseNumber :: Parser LispVal
+parseNumber = (return . Number . read) =<< many1 digit
+
+
+parseString :: Parser LispVal
+parseString = do
+        char '"'
+        x <- many (noneOf "\"")
+        char '"'
+        return $ String x
+
+
+
+-- Parser helpers
+
 symbol :: Parser Char
-symbol = oneOf "!#$%&|*+-/:<+>?@^_~"
+symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
 
 
 spaces :: Parser ()
