@@ -1,0 +1,50 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.33.0.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: 18249a7f5f5d81abf48cffdefd726430ea9aed872a8f21c526b634a674243c6d
+
+name:           uscheme
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/sudo-rushil/uscheme#readme>
+homepage:       https://github.com/sudo-rushil/uscheme#readme
+bug-reports:    https://github.com/sudo-rushil/uscheme/issues
+author:         Rushil Mallarapu
+maintainer:     rushil.mallarapu@gmail.com
+copyright:      Rushil Mallarapu
+license:        MIT
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+
+source-repository head
+  type: git
+  location: https://github.com/sudo-rushil/uscheme
+
+library
+  exposed-modules:
+      Main
+  other-modules:
+      Paths_uscheme
+  hs-source-dirs:
+      src
+  build-depends:
+      base >=4.7 && <5
+    , parsec >=3.1
+  default-language: Haskell2010
+
+executable uscheme
+  main-is: Main.hs
+  other-modules:
+      Paths_uscheme
+  hs-source-dirs:
+      src
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , parsec >=3.1
+    , uscheme
+  default-language: Haskell2010
