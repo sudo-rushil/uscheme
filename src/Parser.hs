@@ -31,6 +31,15 @@ parseExpr = parseAtom
         <|> try parseNumber
         <|> try parseBool
         <|> try parseCharacter
+        <|> parseQuoted
+        <|> parseQuasiQuoted
+        <|> parseUnQuote
+        <|> parseUnQuoteSplicing
+        <|> do
+                char '('
+                x <- try parseList <|> parseDottedList
+                char ')'
+                return x
 
 
 parseAtom :: Parser LispVal
@@ -38,10 +47,46 @@ parseAtom = do
         first <- letter <|> symbol
         rest <- many (letter <|> digit <|> symbol)
         let atom = first:rest
-        return $ case atom of
-                "#t" -> Bool True
-                "#f" -> Bool False
-                _    -> Atom atom
+        return $ Atom atom
+
+
+parseList :: Parser LispVal
+parseList = sepBy parseExpr spaces >>= (return . List)
+
+
+parseQuoted :: Parser LispVal
+parseQuoted = do
+        char '\''
+        x <- parseExpr
+        return $ List [Atom "quote", x]
+
+
+parseQuasiQuoted :: Parser LispVal
+parseQuasiQuoted = do
+        char '`'
+        x <- parseExpr
+        return $ List [Atom "quasiquote", x]
+
+
+parseUnQuote :: Parser LispVal
+parseUnQuote = do
+        char ','
+        x <- parseExpr
+        return $ List [Atom "unquote", x]
+
+
+parseUnQuoteSplicing :: Parser LispVal
+parseUnQuoteSplicing = do
+        string ",@"
+        x <- parseExpr
+        return $ List [Atom "unquote-splicing", x]
+
+
+parseDottedList :: Parser LispVal
+parseDottedList = do
+        head <- endBy parseExpr spaces
+        tail <- char '.' >> spaces >> parseExpr
+        return $ DottedList head tail
 
 
 parseNumber :: Parser LispVal
