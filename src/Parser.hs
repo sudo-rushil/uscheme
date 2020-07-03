@@ -42,11 +42,7 @@ parseExpr = parseAtom
                     x <- parseVector
                     char ')'
                     return x)
-        <|> do
-                char '('
-                x <- parseList
-                char ')'
-                return x
+        <|> parseList
 
 
 parseAtom :: Parser LispVal

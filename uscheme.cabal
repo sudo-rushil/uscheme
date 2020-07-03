@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 3d0aff1dc6f10140b3ed844e29f53f939d9b8d0dbe5610917e7cf241d656ad23
+-- hash: ce240bc8a0f606a94995cde8c7cf772071f5391f7569659414fdb5b514f41ed2
 
 name:           uscheme
 version:        0.1.0.0
@@ -26,6 +26,7 @@ source-repository head
 
 library
   exposed-modules:
+      Evaluator
       Main
       Parser
   other-modules:
@@ -41,6 +42,7 @@ library
 executable uscheme
   main-is: Main.hs
   other-modules:
+      Evaluator
       Parser
       Paths_uscheme
   hs-source-dirs:
