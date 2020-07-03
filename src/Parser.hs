@@ -1,6 +1,7 @@
 module Parser where
 
 
+import           Data.Array
 import           Data.Complex
 import           Data.Ratio
 import           Numeric
@@ -18,6 +19,7 @@ data LispVal = Atom String
     | Float Double
     | Ratio Rational
     | Complex (Complex Double)
+    | Vector (Array Int LispVal)
 
 
 -- Parsers
@@ -35,9 +37,14 @@ parseExpr = parseAtom
         <|> parseQuasiQuoted
         <|> parseUnQuote
         <|> parseUnQuoteSplicing
+        <|> try (do
+                    string "#("
+                    x <- parseVector
+                    char ')'
+                    return x)
         <|> do
                 char '('
-                x <- try parseList <|> parseDottedList
+                x <- parseList
                 char ')'
                 return x
 
@@ -51,7 +58,19 @@ parseAtom = do
 
 
 parseList :: Parser LispVal
-parseList = sepBy parseExpr spaces >>= (return . List)
+parseList = between beg end parseList'
+    where
+        beg = (char '(' >> skipMany space)
+        end = (skipMany space >> char ')')
+
+
+parseList' :: Parser LispVal
+parseList' = do
+        list <- sepEndBy parseExpr spaces
+        maybeDatum <- optionMaybe (char '.' >> spaces >> parseExpr)
+        return $ case maybeDatum of
+            Nothing    -> List list
+            Just datum -> DottedList list datum
 
 
 parseQuoted :: Parser LispVal
@@ -186,6 +205,12 @@ parseComplex = do
 toDouble :: LispVal -> Double
 toDouble (Float f)  = realToFrac f
 toDouble (Number n) = fromIntegral n
+
+
+parseVector :: Parser LispVal
+parseVector = do
+        arrayVals <- sepBy parseExpr spaces
+        return $ Vector (listArray (0, length arrayVals - 1) arrayVals)
 
 
 -- Parser helpers
