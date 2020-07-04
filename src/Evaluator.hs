@@ -53,6 +53,19 @@ eval (List [Atom "if", pred, conseq, alt]) = -- if statement
             Bool True  -> eval conseq
             Bool False -> eval alt
             notBool    -> throwError $ TypeMismatch "boolean" notBool
+eval (List ((Atom "cond") : alts)) = cond alts
+eval form@(List (Atom "case" : key : clauses)) = -- case statement
+    if null clauses
+        then throwError $ BadSpecialForm "no true clause in case expression: " form
+        else case head clauses of
+            List (Atom "else" : exprs) -> mapM eval exprs >>= return . last
+            List ((List datums) : exprs) -> do
+                result <- eval key
+                equality <- mapM (\x -> eqv [result, x]) datums
+                if Bool True `elem` equality
+                    then mapM eval exprs >>= return . last
+                    else eval $ List (Atom "case" : key : tail clauses)
+            _ -> throwError $ BadSpecialForm "ill-formed case expression: " form
 eval (List (Atom func : args))  = mapM eval args >>= apply func -- function application
 eval badForm = throwError $ BadSpecialForm "Unrecognized special form" badForm
 
@@ -96,6 +109,8 @@ primitives =
     , ("eq?", eqv)
     , ("eqv?", eqv)
     , ("equal?", equal)
+    , ("string-length", stringLen)
+    , ("string-ref", stringRef)
     ]
 
 
@@ -234,6 +249,39 @@ eqvList eqvFunc [(List arg1), (List arg2)] = return $ Bool $ (length arg1 == len
             Right (Bool val) -> val
 
 
+-- Conditional Function
+
+cond :: [LispVal] -> ThrowsError LispVal
+cond ((List (Atom "else" : value : [])) : [])  = eval value
+cond ((List (condition : value : [])) : alts) = do
+        result <- eval condition
+        boolResult <- unpackBool result
+        if boolResult
+            then eval value
+            else cond alts
+cond ((List a) : _) = throwError $ NumArgs 2 a
+cond (a : _) = throwError $ NumArgs 2 [a]
+cond _ = throwError $ Default "Not viable alternative in cond"
+
+
+-- String Functions
+
+stringLen :: [LispVal] -> ThrowsError LispVal
+stringLen [(String s)] = Right $ Number $ fromIntegral $ length s
+stringLen [notString]  = throwError $ TypeMismatch "string" notString
+stringLen badArgList   = throwError $ NumArgs 1 badArgList
+
+
+stringRef :: [LispVal] -> ThrowsError LispVal
+stringRef [(String s), (Number k)]
+    | length s < k' + 1 = throwError $ Default "Out of bound error"
+    | otherwise = Right $ String $ [s !! k']
+    where k' = fromIntegral k
+stringRef [(String s), notNum] = throwError $ TypeMismatch "number" notNum
+stringRef [notString, _] = throwError $ TypeMismatch "string" notString
+stringRef badArgList = throwError $ NumArgs 2 badArgList
+
+
 -- Instances
 
 instance Show LispVal where
@@ -248,19 +296,7 @@ instance Show LispVal where
     show (Bool False) = "#f"
     show (List contents) = "(" ++ (unwords . map show) contents ++ ")"
     show (DottedList head tail) = "(" ++ (unwords . map show) head ++ " . " ++ show tail ++ ")"
-
-
--- data LispVal = Atom String √
---     | List [LispVal]
---     | DottedList [LispVal] LispVal
---     | Number Integer √
---     | String String √
---     | Bool Bool √
---     | Character Char
---     | Float Double
---     | Ratio Rational
---     | Complex (Complex Double)
---     | Vector (Array Int LispVal) √
+    show (Vector vec) = show vec
 
 
 instance Show LispError where
