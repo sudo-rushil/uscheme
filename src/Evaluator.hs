@@ -32,23 +32,24 @@ extractValue (Right val) = val
 
 -- Evaluator Primitives
 
-eval :: LispVal -> LispVal
-eval val@(String _)             = val
-eval val@(Number _)             = val
-eval val@(Bool _)               = val
-eval val@(Character _)          = val
-eval val@(Float _)              = val
-eval val@(Ratio _)              = val
-eval val@(Complex _)            = val
-eval (List [Atom "quote", val]) = val
-eval (List (Atom func : args))  = apply func $ map eval args -- function application
+eval :: LispVal -> ThrowsError LispVal
+eval val@(String _)             = return val
+eval val@(Number _)             = return val
+eval val@(Bool _)               = return val
+eval val@(Character _)          = return val
+eval val@(Float _)              = return val
+eval val@(Ratio _)              = return val
+eval val@(Complex _)            = return val
+eval (List [Atom "quote", val]) = return val
+eval (List (Atom func : args))  = mapM eval args >>= apply func -- function application
+eval badForm = throwError $ BadSpecialForm "Unrecognized special form" badForm
 
 
-apply :: String -> [LispVal] -> LispVal
-apply func args = maybe (Bool False) ($ args) $ lookup func primitives
+apply :: String -> [LispVal] -> ThrowsError LispVal
+apply func args = maybe (throwError $ NotFunction "Unrecognized primitive function args" func) ($ args) $ lookup func primitives
 
 
-primitives :: [(String, [LispVal] -> LispVal)]
+primitives :: [(String, [LispVal] -> ThrowsError LispVal)]
 primitives =
     [ ("+", numericBinop (+))
     , ("-", numericBinop (-))
@@ -67,37 +68,47 @@ primitives =
     ]
 
 
-numericBinop :: (Integer -> Integer -> Integer) -> [LispVal] -> LispVal
-numericBinop op params = Number $ foldl1 op $ map unpackNum params
+numericBinop :: (Integer -> Integer -> Integer) -> [LispVal] -> ThrowsError LispVal
+-- numericBinop op params = Number $ foldl1 op $ map unpackNum params
+numericBinop op [] = throwError $ NumArgs 2 []
+numericBinop op single@[_] = throwError $ NumArgs 2 single
+numericBinop op params = mapM unpackNum params >>= return . Number . foldl1 op
 
 
-unpackNum :: LispVal -> Integer
-unpackNum (Number n) = n
-unpackNum _          = 0
+unpackNum :: LispVal -> ThrowsError Integer
+unpackNum (Number n) = return n
+unpackNum (String n) =
+    let parsed = reads n
+    in
+        if null parsed
+            then throwError $ TypeMismatch "number" $ String n
+            else return $ fst $ parsed !! 0
+unpackNum (List [n]) = unpackNum n
+unpackNum notNum    = throwError $ TypeMismatch "number" notNum
 
 
-unaryOp :: (LispVal -> LispVal) -> [LispVal] -> LispVal
+unaryOp :: (LispVal -> ThrowsError LispVal) -> [LispVal] -> ThrowsError LispVal
 unaryOp f [v] = f v -- error to be given more than 2 args
 
 
-symbolp, stringp, numberp, boolp, listp :: LispVal -> LispVal
-symbolp (Atom _) = Bool True
-symbolp _        = Bool False
-stringp (String _) = Bool True
-stringp _          = Bool False
-numberp (Number _) = Bool True
-numberp _          = Bool False
-boolp (Bool _) = Bool True
-boolp _        = Bool False
-listp (List _) = Bool True
-listp _        = Bool False
+symbolp, stringp, numberp, boolp, listp :: LispVal -> ThrowsError LispVal
+symbolp (Atom _) = return $ Bool True
+symbolp _        = return $ Bool False
+stringp (String _) = return $ Bool True
+stringp _          = return $ Bool False
+numberp (Number _) = return $ Bool True
+numberp _          = return $ Bool False
+boolp (Bool _) = return $ Bool True
+boolp _        = return $ Bool False
+listp (List _) = return $ Bool True
+listp _        = return $ Bool False
 
 
-symbol2string, string2symbol :: LispVal -> LispVal
-symbol2string (Atom s) = String s
-symbol2string _        = String ""
-string2symbol (String s) = Atom s
-string2symbol _          = Atom ""
+symbol2string, string2symbol :: LispVal -> ThrowsError LispVal
+symbol2string (Atom s) = return $ String s
+symbol2string _        = return $ String ""
+string2symbol (String s) = return $ Atom s
+string2symbol _          = return $ Atom ""
 
 
 -- Instances
@@ -106,6 +117,10 @@ instance Show LispVal where
     show (String contents) = "\"" ++ contents ++ "\""
     show (Atom name) = name
     show (Number contents) = show contents
+    show (Character char) = [char]
+    show (Float double) = show double
+    show (Ratio rational) = show rational
+    show (Complex comp) = show comp
     show (Bool True) = "#t"
     show (Bool False) = "#f"
     show (List contents) = "(" ++ (unwords . map show) contents ++ ")"
