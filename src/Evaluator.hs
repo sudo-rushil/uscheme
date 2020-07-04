@@ -65,6 +65,19 @@ primitives =
     , ("list?", unaryOp listp)
     , ("symbol->string", unaryOp symbol2string)
     , ("string->symbol", unaryOp string2symbol)
+    , ("=", numBoolBinop (==))
+    , ("<", numBoolBinop (<))
+    , (">", numBoolBinop (>))
+    , ("/=", numBoolBinop (/=))
+    , (">=", numBoolBinop (>=))
+    , ("<=", numBoolBinop (<=))
+    , ("&&", boolBoolBinop (&&))
+    , ("||", boolBoolBinop (||))
+    , ("string=?", strBoolBinop (==))
+    , ("string<?", strBoolBinop (<))
+    , ("string>?", strBoolBinop (>))
+    , ("string<=?", strBoolBinop (<=))
+    , ("string>=?", strBoolBinop (>=))
     ]
 
 
@@ -109,6 +122,33 @@ symbol2string (Atom s) = return $ String s
 symbol2string _        = return $ String ""
 string2symbol (String s) = return $ Atom s
 string2symbol _          = return $ Atom ""
+
+
+numBoolBinop = boolBinop unpackNum
+strBoolBinop = boolBinop unpackStr
+boolBoolBinop = boolBinop unpackBool
+
+
+boolBinop :: (LispVal -> ThrowsError a) -> (a -> a -> Bool) -> [LispVal] -> ThrowsError LispVal
+boolBinop unpacker op args =
+    if length args /= 2
+        then throwError $ NumArgs 2 args
+        else do
+                left <- unpacker $ args !! 0
+                right <- unpacker $ args !! 1
+                return $ Bool $ left `op` right
+
+
+unpackStr :: LispVal -> ThrowsError String
+unpackStr (String s) = return s
+unpackStr (Number s) = return $ show s
+unpackStr (Bool s)   = return $ show s
+unpackStr notString  = throwError $ TypeMismatch "string" notString
+
+
+unpackBool :: LispVal -> ThrowsError Bool
+unpackBool (Bool b) = return b
+unpackBool notBool  = throwError $ TypeMismatch "boolean" notBool
 
 
 -- Instances
