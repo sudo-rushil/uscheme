@@ -1,7 +1,33 @@
 module Evaluator where
 
 
+import           Control.Monad.Except
 import           Parser
+import           Text.ParserCombinators.Parsec (ParseError)
+
+
+-- Exception Types
+
+data LispError = NumArgs Integer [LispVal]
+    | TypeMismatch String LispVal
+    | Parser ParseError
+    | BadSpecialForm String LispVal
+    | NotFunction String String
+    | UnboundVar String String
+    | Default String
+
+
+type ThrowsError = Either LispError
+
+
+-- Error Handling Functions
+
+
+trapError action = catchError action (return . show)
+
+
+extractValue :: ThrowsError a -> a
+extractValue (Right val) = val
 
 
 -- Evaluator Primitives
@@ -97,3 +123,12 @@ instance Show LispVal where
 --     | Ratio Rational
 --     | Complex (Complex Double)
 --     | Vector (Array Int LispVal) √
+
+
+instance Show LispError where
+    show (UnboundVar message varname)  = message ++ ": " ++ varname
+    show (BadSpecialForm message form) = message ++ ": " ++ show form
+    show (NotFunction message func)    = message ++ ": " ++ show func
+    show (NumArgs expected found)     = "Expected " ++ show expected ++ " args; found values " ++ (unwords . map show) found
+    show (TypeMismatch expected found) = "Invalid type: expected " ++ expected ++ ", found " ++ show found
+    show (Parser parseErr) = "Parse error at " ++ show parseErr

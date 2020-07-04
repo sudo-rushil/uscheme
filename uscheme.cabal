@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: ce240bc8a0f606a94995cde8c7cf772071f5391f7569659414fdb5b514f41ed2
+-- hash: c52f3aa28933e15622f7990957f848a35763117b62653721e10b135fe6af11d0
 
 name:           uscheme
 version:        0.1.0.0
@@ -36,6 +36,7 @@ library
   build-depends:
       array >=0.5
     , base >=4.7 && <5
+    , mtl >=2.2
     , parsec >=3.1
   default-language: Haskell2010
 
@@ -51,6 +52,7 @@ executable uscheme
   build-depends:
       array >=0.5
     , base >=4.7 && <5
+    , mtl >=2.2
     , parsec >=3.1
     , uscheme
   default-language: Haskell2010
