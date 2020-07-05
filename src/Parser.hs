@@ -4,7 +4,6 @@ module Parser where
 import           Data.Array
 import           Data.Complex
 import           Data.Ratio
-import           Evaluator                     (ThrowsError)
 import           Numeric
 import           Text.ParserCombinators.Parsec hiding (spaces)
 
@@ -29,6 +28,20 @@ data LispVal = Atom String
     , closure :: Env
     }
     deriving (Eq)
+
+
+-- Error Types
+
+data LispError = NumArgs Integer [LispVal]
+    | TypeMismatch String LispVal
+    | Parser ParseError
+    | BadSpecialForm String LispVal
+    | NotFunction String String
+    | UnboundVar String String
+    | Default String
+
+
+type ThrowsError = Either LispError
 
 
 -- Parsers

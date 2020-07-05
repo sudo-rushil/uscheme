@@ -13,18 +13,6 @@ import           Text.ParserCombinators.Parsec (ParseError, parse)
 
 -- Types
 
-data LispError = NumArgs Integer [LispVal]
-    | TypeMismatch String LispVal
-    | Parser ParseError
-    | BadSpecialForm String LispVal
-    | NotFunction String String
-    | UnboundVar String String
-    | Default String
-
-
-type ThrowsError = Either LispError
-
-
 data Unpacker = forall a . Eq a => AnyUnpacker (LispVal -> ThrowsError a)
 
 
