@@ -1,8 +1,11 @@
+{-# LANGUAGE FlexibleInstances #-}
+
 module Parser where
 
 
 import           Data.Array
 import           Data.Complex
+import           Data.IORef
 import           Data.Ratio
 import           Numeric
 import           Text.ParserCombinators.Parsec hiding (spaces)
@@ -28,6 +31,13 @@ data LispVal = Atom String
     , closure :: Env
     }
     deriving (Eq)
+
+
+type Env = IORef [(String, IORef LispVal)]
+
+
+instance Eq ([LispVal] -> ThrowsError LispVal) where
+    _ == _ = True -- never do this
 
 
 -- Error Types

@@ -16,9 +16,6 @@ import           Text.ParserCombinators.Parsec (ParseError, parse)
 data Unpacker = forall a . Eq a => AnyUnpacker (LispVal -> ThrowsError a)
 
 
-type Env = IORef [(String, IORef LispVal)]
-
-
 type IOThrowsError = ExceptT LispError IO
 
 
