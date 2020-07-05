@@ -3,11 +3,13 @@
 module Parser where
 
 
+import           Control.Monad.Except
 import           Data.Array
 import           Data.Complex
 import           Data.IORef
 import           Data.Ratio
 import           Numeric
+import           System.IO
 import           Text.ParserCombinators.Parsec hiding (spaces)
 
 -- Data Types
@@ -30,14 +32,12 @@ data LispVal = Atom String
     , body    :: [LispVal]
     , closure :: Env
     }
+    | IOFunc ([LispVal] -> IOThrowsError LispVal)
+    | Port Handle
     deriving (Eq)
 
 
 type Env = IORef [(String, IORef LispVal)]
-
-
-instance Eq ([LispVal] -> ThrowsError LispVal) where
-    _ == _ = True -- never do this
 
 
 -- Error Types
@@ -52,6 +52,9 @@ data LispError = NumArgs Integer [LispVal]
 
 
 type ThrowsError = Either LispError
+
+
+type IOThrowsError = ExceptT LispError IO
 
 
 -- Parsers
@@ -249,3 +252,19 @@ symbol = oneOf "!$%&|*+-/:<=>?@^_~"
 
 spaces :: Parser ()
 spaces = skipMany1 space
+
+
+readOrThrow :: Parser a -> String -> ThrowsError a
+readOrThrow parser input = case parse parser "lisp" input of
+    Left err  -> throwError $ Parser err
+    Right val -> return val
+
+
+-- Instances
+
+instance Eq ([LispVal] -> ThrowsError LispVal) where
+    _ == _ = True -- never do this
+
+
+instance Eq ([LispVal] -> IOThrowsError LispVal) where
+    _ == _ = True
