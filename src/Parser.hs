@@ -4,6 +4,7 @@ module Parser where
 import           Data.Array
 import           Data.Complex
 import           Data.Ratio
+import           Evaluator                     (ThrowsError)
 import           Numeric
 import           Text.ParserCombinators.Parsec hiding (spaces)
 
@@ -20,6 +21,13 @@ data LispVal = Atom String
     | Ratio Rational
     | Complex (Complex Double)
     | Vector (Array Int LispVal)
+    | PrimitiveFunc ([LispVal] -> ThrowsError LispVal)
+    | Func
+    { params  :: [String]
+    , vararg  :: (Maybe String)
+    , body    :: [LispVal]
+    , closure :: Env
+    }
     deriving (Eq)
 
 
