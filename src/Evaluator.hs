@@ -51,9 +51,8 @@ eval env (List [Atom "if", pred, conseq, alt]) = -- if statement
     do
         result <- eval env pred
         case result of
-            Bool True  -> eval env conseq
             Bool False -> eval env alt
-            notBool    -> throwError $ TypeMismatch "boolean" notBool
+            _          -> eval env conseq
 eval env (List ((Atom "cond") : alts)) = cond env alts
 eval env form@(List (Atom "case" : key : clauses)) = -- case statement
     if null clauses
